@@ -1,0 +1,8 @@
+{
+    "NOVEL_SEMAPHORE": 8,
+    "CHAPTER_SEMAPHORE": 10,
+    "RETRY_SEMAPHORE": 10,
+    "NOVEL_NUM": 1050,
+    "BASE_URL": "https://apibi.cc/api/chapter?",
+    "TIMEOUT": 10
+}

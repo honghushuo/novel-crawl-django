@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% block css %}
+    <style>
+        .log-box {
+            height: 460px;
+            overflow-y: auto;
+            background: #000;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        .status-box {
+            color: #d9534f;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h2 class="page-header">(悠久小说网)章节爬虫控制台</h2>
+        <div style="display: flex; align-items: center; gap: 10px; width: auto;">
+            <label for="site_select" style="margin: 0; white-space: nowrap;">更换爬取站点：</label>
+            <select id="site_select" class="form-control"
+                    style="width: 180px; height: 32px; padding: 0 8px; font-size: 14px;"
+                    onchange="jumpOtherSite(this.value)">
+                <option value="" disabled>--- 请选择小说源 ---</option>
+                <option value="1" {% if source_id == 1 %}selected{% endif %}>笔趣阁</option>
+                <option value="2" {% if source_id == 2 %}selected{% endif %}>悠久小说网</option>
+                <option value="3" {% if source_id == 3 %}selected{% endif %}>看书阁</option>
+            </select>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">并发配置</div>
+                    <div class="panel-body">
+                        <div class="status-box" id="status_tip">状态：等待操作</div>
+                        <form id="configForm">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label for="novel_sem">小说并发信号量</label>
+                                <input type="number" class="form-control" id="novel_sem" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="chapter_sem">章节并发信号量</label>
+                                <input type="number" class="form-control" id="chapter_sem" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="retry_sem">重爬并发信号量</label>
+                                <input type="number" class="form-control" id="retry_sem" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="novel_num">爬取小说量</label>
+                                <input type="number" class="form-control" id="novel_num" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">保存配置</button>
+                            <br>
+                            <button type="button" class="btn btn-warning btn-block" id="startBtn">开始爬取</button>
+                            <button type="button" class="btn btn-danger btn-block" id="retryBtn">重爬失败章节</button>
+                            <button type="button" class="btn btn-success btn-block" id="updateBtn">更新章节</button>
+
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="panel panel-info">
+                    <div class="panel-heading">实时日志</div>
+                    <div class="panel-body">
+                        <div id="logContent" class="log-box">加载中...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}
+    <script>
+        let statusTimer = null;
+
+        // 实时加载状态（强制无缓存）
+        function loadStatus() {
+            $.ajax({
+                url: "{% url 'chapter_crawl_status_1' %}",
+                type: "GET",
+                cache: false,
+                success: function (res) {
+                    $("#novel_sem").val(res.novel_sem);
+                    $("#chapter_sem").val(res.chapter_sem);
+                    $("#retry_sem").val(res.retry_sem);
+                    $("#novel_num").val(res.novel_num);
+                    let statusText = res.running ? "状态：爬取中..." : "状态：等待操作";
+                    $("#status_tip").text(statusText + ` | 成功：${res["success_count"]} 失败：${res["fail_count"]}`);
+                    let logContent = $("#logContent")
+                    logContent.html(res["logs"].join('\n')).scrollTop(logContent[0].scrollHeight);
+
+                    if (res.running) {
+                        if (!statusTimer) startTimer();
+                    } else {
+                        $("#startBtn").prop('disabled', false).html(' 开始爬取');
+                        $("#retryBtn").prop('disabled', false).html(' 重爬失败章节');
+                        $("#updateBtn").prop('disabled', false).html(' 更新章节');
+                        stopTimer();
+
+                    }
+                },
+                error: function () {
+                    stopTimer();
+                }
+            });
+        }
+
+        function startTimer() {
+            stopTimer();
+            statusTimer = setInterval(loadStatus, 500);
+        }
+
+        function stopTimer() {
+            if (statusTimer) {
+                clearInterval(statusTimer);
+                statusTimer = null;
+            }
+        }
+
+        // 保存配置
+        $("#configForm").submit(function (e) {
+            e.preventDefault();  //表单提交时阻止默认刷新页面
+            $.post("{% url 'chapter_save_config_1' %}", {
+                novel_sem: $("#novel_sem").val(),
+                chapter_sem: $("#chapter_sem").val(),
+                retry_sem: $("#retry_sem").val(),
+                novel_num: $("#novel_num").val(),
+                csrfmiddlewaretoken: $("[name=csrfmiddlewaretoken]").val()
+            }, function (res) {
+                alert(res.msg);
+                loadStatus();
+            });
+        });
+
+        // 开始爬取
+        $("#startBtn").click(function () {
+            let $this = $(this);
+            if ($this.is(':disabled')) return;
+            $this.prop('disabled', true).text('爬取中...');
+
+            if (confirm("确定开始爬取？")) {
+                startTimer();
+                $.get("{% url 'chapter_start_crawl_1' %}", function (res) {
+                    loadStatus();
+                });
+            }
+        });
+
+        // 重试爬取
+        $("#retryBtn").click(function () {
+            let $this = $(this);
+            if ($this.is(':disabled')) return;
+            $this.prop('disabled', true).text('重新爬取中...');
+
+            if (confirm("确定重爬失败章节？")) {
+                startTimer();
+                $.get("{% url 'chapter_retry_crawl_1' %}", function (res) {
+                    loadStatus();
+                });
+            }
+        });
+
+        // 更新章节
+        $("#updateBtn").click(function () {
+            let $this = $(this);
+            if ($this.is(':disabled')) return;
+            $this.prop('disabled', true).text('更新中...');
+
+            if (confirm("确定更新章节？")) {
+                startTimer();
+                $.get("{% url 'update_chapter_1' %}", function (res) {
+                    loadStatus();
+                });
+            }
+        });
+
+        // 页面加载
+        $(function () {
+            loadStatus();
+        });
+
+        function jumpOtherSite(value) {
+            if (!value) return;
+            const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+
+            // 站点配置
+            let config = {};
+            if (value === "1") {
+                config = {
+                    localSite: "笔趣阁",
+                    info_crawl_page: "/info_crawl/",
+                    chapter_crawl_page: "/chapter_crawl/",
+                    update_page: "/update/page/"
+                };
+            } else if (value === "2") {
+                config = {
+                    localSite: "悠久小说网",
+                    info_crawl_page: "/info_crawl_1/",
+                    chapter_crawl_page: "/chapter_crawl_1/",
+                    update_page: "/update/page_1/"
+                };
+            }else if (value === "3") {
+                config = {
+                    localSite: "看书阁",
+                    info_crawl_page: "/info_crawl_2/",
+                    chapter_crawl_page: "/chapter_crawl_2/",
+                    update_page: "/update/page_2/"
+                };
+            }
+            // 发送保存
+            $.ajax({
+                url: "/save_site_config/",
+                type: "POST",
+                data: {
+                    localSite: config.localSite,
+                    info_crawl_page: config.info_crawl_page,
+                    chapter_crawl_page: config.chapter_crawl_page,
+                    update_page: config.update_page,
+                    csrfmiddlewaretoken: csrfToken
+                },
+                success: function (res) {
+                    console.log("保存成功:", res);
+                },
+                complete: function () {
+                    // 无论如何都跳转
+                    location.href = config.chapter_crawl_page;
+                }
+            });
+        }
+    </script>
+{% endblock %}

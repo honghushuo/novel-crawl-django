@@ -1,0 +1,8 @@
+{
+    "NOVEL_SEMAPHORE": 10,
+    "CHAPTER_SEMAPHORE": 20,
+    "RETRY_SEMAPHORE": 5,
+    "NOVEL_NUM": 1202,
+    "BASE_URL": "https://www.zjuyc.com/files/",
+    "TIMEOUT": 15
+}

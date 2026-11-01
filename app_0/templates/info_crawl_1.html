@@ -1,0 +1,397 @@
+{% extends 'base.html' %}
+{% block content %}
+
+    <!-- 全局样式前置，解决层级问题 -->
+    <style>
+        /* 基础布局 */
+        .crawl-container {
+            background-color: #f8f9fa;
+            padding: 20px 0;
+            min-height: calc(100vh - 40px);
+        }
+
+        /* 卡片通用样式 - 带边框、区分背景 */
+        .crawl-card {
+            background-color: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .crawl-card-header {
+            background-color: #e9ecef;
+            border-bottom: 1px solid #dee2e6;
+            padding: 12px 20px;
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .crawl-card-body {
+            padding: 20px;
+        }
+
+        /* 统计卡片样式 */
+        .stat-item {
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            background-color: #fdfdfd;
+            transition: all 0.2s ease;
+        }
+
+        .stat-item:hover {
+            border-color: #0d6efd;
+            background-color: #f8f9ff;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        /* 按钮和输入框强化 */
+        .form-control {
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            padding: 10px 12px;
+        }
+
+        .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+        }
+
+        .btn {
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-weight: 500;
+            border-width: 1px;
+        }
+
+        /* 日志区域样式 */
+        #logArea {
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+            font-family: "Consolas", "Monaco", monospace;
+        }
+
+        /* 滚动条美化 */
+        #logArea::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #logArea::-webkit-scrollbar-thumb {
+            background-color: #adb5bd;
+            border-radius: 4px;
+        }
+
+        #logArea::-webkit-scrollbar-track {
+            background-color: #e9ecef;
+        }
+    </style>
+
+    <div class="crawl-container">
+        <div class="container">
+            <!-- 主卡片 -->
+            <div class="crawl-card">
+                <div class="crawl-card-header"
+                     style="display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap;">
+                    <div style="font-size: 16px; font-weight: 600;">
+                        <i class="glyphicon glyphicon-globe"></i> 悠久小说网站点数据爬取管理
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 10px; width: auto;">
+                        <label for="site_select" style="margin: 0; white-space: nowrap;">更换爬取站点：</label>
+                        <select id="site_select" class="form-control"
+                                style="width: 180px; height: 32px; padding: 0 8px; font-size: 14px;"
+                                onchange="jumpOtherSite(this.value)">
+                            <option value="" disabled>--- 请选择小说源 ---</option>
+                            <option value="1" {% if source_id == 1 %}selected{% endif %}>笔趣阁</option>
+                            <option value="2" {% if source_id == 2 %}selected{% endif %}>悠久小说网</option>
+                            <option value="3" {% if source_id == 3 %}selected{% endif %}>看书阁</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="crawl-card-body">
+                    <!-- 配置面板 -->
+                    <div class="crawl-card mb-4">
+                        <div class="crawl-card-header">
+                            <i class="glyphicon glyphicon-cog me-1"></i>爬取配置（运行中禁止修改）
+                        </div>
+                        <div class="crawl-card-body">
+                            <div class="row g-4">
+
+                                <div class="col-md-4">
+                                    <label for="max_concurrent" class="form-label">最大并发数</label>
+                                    <input id="max_concurrent" type="number" class="form-control" value="50" min="1">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="again_sem" class="form-label">重爬并发数</label>
+                                    <input id="again_sem" type="number" class="form-control" value="4" min="1">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="max_crawl_num" class="form-label">最大爬取数量</label>
+                                    <input id="max_crawl_num" type="number" class="form-control" value="500" min="1">
+                                </div>
+                                <div class="col-12 text-center">
+                                    <button id="saveConfig" class="btn btn-primary" style="margin-top: 10px">
+                                        <span class="glyphicon glyphicon-floppy-disk me-1"></span> 保存配置
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 控制按钮 -->
+                    <div class="mb-4 d-flex gap-3">
+                        <button id="startBtn" class="btn btn-success flex-grow-1" style="margin-bottom: 8px">
+                            <span class="glyphicon glyphicon-play me-1"></span> 开始爬取小说数据
+                        </button>
+                        <button id="retryBtn" class="btn btn-warning flex-grow-1"
+                                style="float: right; margin-bottom: 8px">
+                            <span class="glyphicon glyphicon-refresh me-1"></span> 重试失败数据
+                        </button>
+                    </div>
+
+                    <!-- 实时统计 -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="stat-item h-100 text-center">
+                                <div class="stat-label">当前ID</div>
+                                <div class="stat-value text-primary" id="currentId">1</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item h-100 text-center">
+                                <div class="stat-label">成功</div>
+                                <div class="stat-value text-success" id="successCount">0</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item h-100 text-center">
+                                <div class="stat-label">失败</div>
+                                <div class="stat-value text-danger" id="failCount">0</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item h-100 text-center">
+                                <div class="stat-label">状态</div>
+                                <div class="stat-value text-secondary" id="runStatus">未运行</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 日志 -->
+                    <div class="crawl-card">
+                        <div class="crawl-card-header">
+                            <i class="glyphicon glyphicon-list-alt me-1"></i>实时爬取日志
+                        </div>
+                        <div class="crawl-card-body p-0">
+                            <div id="logArea"
+                                 style="height: 400px; overflow-y: auto; padding: 15px; font-size: 13px; line-height: 1.6;">
+                                等待启动爬取...
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            {% csrf_token %}
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block js %}
+    <script>
+        let statusTimer = null;
+        let $logArea;
+        let firstLoad = true;
+
+        // 安全开启定时器
+        function startStatusTimer() {
+            stopStatusTimer();
+            statusTimer = setInterval(refreshStatus, 1000);
+        }
+
+        // 安全停止定时器
+        function stopStatusTimer() {
+            if (statusTimer) {
+                clearInterval(statusTimer);
+                statusTimer = null;
+            }
+        }
+
+        $(function () {
+            $logArea = $('#logArea');
+            refreshStatus();
+
+            // 启动爬取
+            $('#startBtn').click(function () {
+                let $this = $(this);
+                if ($this.is(':disabled')) return;
+
+                startStatusTimer();
+                $this.prop('disabled', true).text('爬取中...');
+
+                $.get('/info_start_1/')
+                    .done(function (res) {
+                        alert(res.msg);
+                    })
+                    .fail(function () {
+                        alert('启动失败');
+                        stopStatusTimer();
+                        $this.prop('disabled', false).html('<span class="glyphicon glyphicon-play me-1"></span> 开始爬取小说数据');
+                    });
+            });
+
+            // 重试
+            $('#retryBtn').click(function () {
+                let $this = $(this);
+                if ($this.is(':disabled')) return;
+
+                startStatusTimer();
+                $this.prop('disabled', true).text('重试中...');
+
+                $.get('/info_retry_1/')
+                    .done(function (res) {
+                        alert(res.msg);
+                    })
+                    .fail(function () {
+                        alert('重试失败');
+                        stopStatusTimer();
+                        $this.prop('disabled', false).html('<span class="glyphicon glyphicon-refresh me-1"></span> 重试失败数据');
+                    });
+            });
+
+            // 保存配置
+            $('#saveConfig').click(function () {
+                let maxConcurrent = parseInt($('#max_concurrent').val()) || 50;
+                let againSem = parseInt($('#again_sem').val()) || 4;
+                let maxCrawlNum = parseInt($('#max_crawl_num').val()) || 500;
+
+                if (maxConcurrent < 1 || againSem < 1 || maxCrawlNum < 1) {
+                    alert('请输入大于0的整数！');
+                    return;
+                }
+                const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+                $.ajax({
+                    url: '/info_save_config_1/',
+                    type: 'POST',
+                    data: {
+                        csrfmiddlewaretoken: csrfToken,
+                        max_concurrent: maxConcurrent,
+                        again_sem: againSem,
+                        max_crawl_num: maxCrawlNum
+                    },
+                    success: function (res) {
+                        alert(res.msg);
+                        firstLoad = true;
+                        refreshStatus();
+                    },
+                    error: function () {
+                        alert('配置保存失败！');
+                    }
+                });
+            });
+        });
+
+        function refreshStatus() {
+            $.get('/info_status_1/')
+                .done(function (data) {
+                    $('#currentId').text(data["current_id"]);
+                    $('#successCount').text(data["success_count"]);
+                    $('#failCount').text(data["fail_count"]);
+
+                    if (firstLoad) {
+                        $('#max_concurrent').val(data.max_concurrent);
+                        $('#again_sem').val(data.again_sem);
+                        $('#max_crawl_num').val(data.max_crawl_num);
+                        firstLoad = false;
+                    }
+
+                    // 任务状态
+                    if (data.running) {
+                        $('#runStatus').text('正在爬取').css('color', '#28a745');
+                        $('#saveConfig').prop('disabled', true);
+                        if (!statusTimer) startStatusTimer();
+                    } else {
+                        stopStatusTimer();
+                        $('#runStatus').text('未运行').css('color', '#6c757d');
+                        $('#saveConfig').prop('disabled', false);
+                        $('#startBtn').prop('disabled', false).html('<span class="glyphicon glyphicon-play me-1"></span> 开始爬取小说数据');
+                        $('#retryBtn').prop('disabled', false).html('<span class="glyphicon glyphicon-refresh me-1"></span> 重试失败数据');
+                    }
+
+                    // 日志
+                    let logHtml = (data["logs"] || []).join('<br>');
+                    $logArea.html(logHtml);
+                    $logArea.scrollTop($logArea[0].scrollHeight);
+                })
+                .fail(function () {
+                    console.error("状态获取失败");
+                    stopStatusTimer();
+                });
+        }
+
+        function jumpOtherSite(value) {
+            if (!value) return;
+
+            // 固定获取 CSRF（绝对不报错）
+            const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+
+            // 站点配置
+            let config = {};
+            if (value === "1") {
+                config = {
+                    localSite: "笔趣阁",
+                    info_crawl_page: "/info_crawl/",
+                    chapter_crawl_page: "/chapter_crawl/",
+                    update_page: "/update/page/"
+                };
+            } else if (value === "2") {
+                config = {
+                    localSite: "悠久小说网",
+                    info_crawl_page: "/info_crawl_1/",
+                    chapter_crawl_page: "/chapter_crawl_1/",
+                    update_page: "/update/page_1/"
+                };
+            }else if (value === "3") {
+                config = {
+                    localSite: "看书阁",
+                    info_crawl_page: "/info_crawl_2/",
+                    chapter_crawl_page: "/chapter_crawl_2/",
+                    update_page: "/update/page_2/"
+                };
+            }
+            // 发送保存
+            $.ajax({
+                url: "/save_site_config/",
+                type: "POST",
+                data: {
+                    localSite: config.localSite,
+                    info_crawl_page: config.info_crawl_page,
+                    chapter_crawl_page: config.chapter_crawl_page,
+                    update_page: config.update_page,
+                    csrfmiddlewaretoken: csrfToken
+                },
+                success: function (res) {
+                    console.log("保存成功:", res);
+                },
+                complete: function () {
+                    // 无论如何都跳转
+                    location.href = config.info_crawl_page;
+                }
+            });
+        }
+    </script>
+{% endblock %}

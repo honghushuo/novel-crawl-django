@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block css %}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* 页面容器 */
+        .container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+
+        /* 卡片样式 */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+
+        /* 头像区域 */
+        .avatar {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .avatar img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid #eef2f7;
+        }
+
+        /* 标题文字 */
+        .title {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title h1 {
+            font-size: 28px;
+            color: #222;
+            margin-bottom: 8px;
+        }
+
+        .title p {
+            font-size: 16px;
+            color: #666;
+        }
+
+        /* 信息模块 */
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section h2 {
+            font-size: 20px;
+            color: #2d3748;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        /* 技能标签 */
+        .skills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .skill-tag {
+            background: #eef2f7;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        /* 联系方式 */
+        .contact-info {
+            list-style: none;
+        }
+
+        .contact-info li {
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+
+        .contact-info a {
+            color: #3182ce;
+            text-decoration: none;
+        }
+
+        .contact-info a:hover {
+            text-decoration: underline;
+        }
+
+        /* 社交链接 */
+        .social {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .social a {
+            color: #4a5568;
+            font-size: 24px;
+            transition: 0.3s;
+        }
+
+        .social a:hover {
+            color: #3182ce;
+        }
+
+        /* 底部 */
+        .footer {
+            text-align: center;
+            color: #999;
+            margin-top: 40px;
+            font-size: 14px;
+        }
+
+        p {
+            font-family: 华文行楷, serif;
+            font-size: 3em;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <!-- 个人信息卡片 -->
+        <div class="card">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="avatar">
+                    <input type="file" name="avatar" id="avatarInput" accept="image/*" style="display: none;">
+                    <img src="{% if info.avatar %}
+                            {% static info.avatar %}
+                            {% else %}
+                            {% static 'images/默认头像.png' %}
+                            {% endif %}"
+                         id="avatarPreview"
+                         style="cursor: pointer; border-radius:50%;"
+                         alt="头像">
+                </div>
+            </form>
+
+            <div class="title">
+                <h1 style="font-family: 方正舒体 serif">{{ info.username }}</h1>
+                <p>职业: {{ info.occupation }} </p>
+                <p>座右铭: {{ info.motto }}</p>
+                {% if info.birthday == None %}
+                    <p>生日: 未知</p>
+                {% else %}
+                    <p>生日: {{ info.birthday }}</p>
+                {% endif %}
+            </div>
+
+            <!-- 个人简介 -->
+            <div class="section">
+                <h2>关于我</h2>
+                <p style="font-size: 2em">
+                    {{ info.about_me }}</p>
+            </div>
+
+            <!-- 技能特长 -->
+            <div class="section">
+                <h2>技能特长</h2>
+                <div class="skills">
+                    <span class="skill-tag">{{ info.hobby }}</span>
+
+                </div>
+            </div>
+
+            <!-- 联系方式 -->
+            <div class="section">
+                <h2>联系方式</h2>
+                <ul class="contact-info">
+                    {% if info.birthday == None %}
+                    <li>📩 邮箱：未知</li>
+                    {% else %}
+                    <li>📩 邮箱：{{ info.email }}</li>
+                    {% endif %}
+                    {% if info.birthday == None %}
+                    <li>📞 电话：未知</li>
+                    {% else %}
+                    <li>📞 电话：{{ info.phone }}</li>
+                    {% endif %}
+
+                    <li>📍 地址：{{ info.address }}</li>
+                    <li>🔗 个人网站：<a href="#">http://localhost:8000/</a></li>
+                </ul>
+            </div>
+
+            <div class="social">
+                <a class="btn btn-success" onclick="edit()">编辑信息</a>
+            </div>
+        </div>
+
+        <!-- 底部 -->
+        <div class="footer">
+            © 2026 我的个人主页 - 保留所有权利
+        </div>
+    </div>
+
+    {# 警告框#}
+    <div class="panel panel-danger">
+        <div class="modal fade" tabindex="-1" role="dialog" id="et">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span></button>
+                        <h4 class="modal-title">编辑个人信息</h4>
+                    </div>
+                    <div class="modal-body">
+                        <form id="myForm" style="padding-left: 75px" method="post" novalidate>
+                            {% csrf_token %}
+                            {% for field in form %}
+                                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                    <label style="color: #6610f2; width: 120px; margin-right: 10px;">{{ field.label }}
+                                        :</label>
+                                    {{ field }}
+                                </div>
+                            {% endfor %}
+                        </form>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal" onclick="close()">关闭
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="confirmEdit()">确认编辑</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}
+    <script>
+        function edit() {
+            $('#et').modal('show');
+        }
+
+        function confirmEdit() {
+            let data = $('#myForm').serialize()
+            $('.error-messages').remove(); //删除节点
+            $.ajax(
+                {
+                    url: '/home/count/',
+                    type: 'POST',
+                    data: data,
+                    dataType: 'JSON',
+                    success: function (result) {
+                        if (result.status) {
+                            location.href = '/home/';
+                        } else {
+                            $.each(result.errors, function (key, valueList) {
+                                    console.log(data);
+                                    //创建节点
+                                    let new_node = $('<span class="error-messages" style="color: red"></span>').text(valueList[0])
+                                    //添加在某节点之后
+                                    $('#id_' + key).after(new_node);
+                                }
+                            )
+                        }
+                    }
+                }
+            )
+        }
+
+        // 获取元素
+        const avatarInput = $('#avatarInput');
+        const avatarPreview = $('#avatarPreview');
+
+        // 点击头像 → 打开文件选择
+        avatarPreview.click(() => avatarInput.click())
+
+        avatarInput.change(function (e) {
+
+            const image = this.files[0];
+            if (!image) return;
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                avatarPreview.attr('src', event.target.result);
+            };
+            reader.readAsDataURL(image);
+
+            const formData = new FormData();
+            formData.append('image', image);
+            formData.append('csrfmiddlewaretoken', $('form:first input[name=csrfmiddlewaretoken]').val());
+
+            $.ajax({
+                url: '/avatar/count/',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                dataType: 'json',
+                success: function (res) {
+                    console.log("后端返回数据：", res);
+                    if (res && res.ok === 1) {
+                        alert("✅ 头像保存成功！");
+                        location.reload();
+                    } else {
+                        const errMsg = res?.error || "未知错误，请检查后端";
+                        alert("❌ 保存失败：" + errMsg);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.log("请求错误：", xhr.responseText, status, error);
+                    alert("❌ 请求失败：" + error);
+                }
+            });
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,8 @@
+{
+    "general_url": "https://apibi.cc/api/book?",
+    "book_id": 1,
+    "MAX_CONCURRENT": 50,
+    "AGAIN_SEMAPHORE": 10,
+    "MAX_NOT_EXIST": 20,
+    "MAX_CRAWL_NUM": 1050
+}
