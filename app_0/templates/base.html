@@ -1,0 +1,302 @@
+{% load static %}
+{% load menu %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基于多源小说站点爬虫的阅读平台</title>
+    <link rel="stylesheet" href="{% static 'plugins/bootstrapv3/css/bootstrap.css' %}">
+    {% block css %}{% endblock %}
+    <style>
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            background-image: url("https://picsum.photos/id/1050/1920/1080");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            padding-top: 15px;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+            position: relative;
+            z-index: 0;
+            border: 12px solid #ffffff;
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06),
+            0 10px 30px rgba(0, 0, 0, 0.08);
+            box-sizing: border-box;
+            background-clip: padding-box;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.25);
+            z-index: -1;
+        }
+
+        .navbar-default {
+            background: linear-gradient(120deg, #4fc3f7 0%, #2196f3 50%, #1976d2 100%);
+            margin: auto;
+            width: 1400px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.25);
+            border-radius: 18px;
+        }
+
+        .navbar-brand {
+            font-family: "华文行楷", "STXingkai", serif;
+            font-size: 22px !important;
+            color: #fff !important;
+            padding: 8px 20px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .navbar-brand:hover {
+            color: #fffbe7 !important;
+            transform: scale(1.03);
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .navbar-nav > li > a {
+            color: #fff !important;
+            font-size: 15px;
+            padding: 12px 18px;
+            margin: 0 2px;
+            border-radius: 6px;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+
+        .navbar-nav > li > a::after {
+            content: "";
+            position: absolute;
+            bottom: 8px;
+            left: 18px;
+            width: 0;
+            height: 2px;
+            background: #fffbe7;
+            transition: width 0.3s ease;
+        }
+
+        .navbar-nav > li > a:hover::after,
+        .navbar-nav > li.active > a::after {
+            width: calc(100% - 36px);
+        }
+
+        .navbar-nav > li > a:hover,
+        .navbar-nav > li.active > a {
+            background-color: rgba(255, 255, 255, 0.12) !important;
+            color: #fffbe7 !important;
+        }
+
+        .navbar-right .dropdown > a {
+            color: #fff !important;
+            font-size: 15px;
+            padding: 12px 18px;
+            border-radius: 6px;
+            margin-left: 5px;
+        }
+
+        .navbar-right .dropdown > a:hover {
+            background-color: rgba(255, 255, 255, 0.12) !important;
+        }
+
+        .dropdown-menu {
+            background-color: #ffffff !important;
+            color: #333 !important;
+            z-index: 9999 !important;
+            border-radius: 8px !important;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+            border: none !important;
+        }
+
+        .dropdown-menu li a {
+            color: #333 !important;
+        }
+
+        .caret {
+            border-top-color: #fff !important;
+            border-bottom-color: #fff !important;
+        }
+
+        .modal-content {
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            border: none;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            border-bottom: 1px solid #f0f4f9;
+            text-align: center;
+            padding: 16px 20px;
+            background: #f8fbff;
+        }
+
+        .modal-title {
+            color: #1976d2;
+            font-weight: 500;
+        }
+
+        .modal-body {
+            text-align: center;
+            font-size: 16px;
+            padding: 30px 20px;
+            color: #555;
+        }
+
+        .modal-footer {
+            border-top: 1px solid #f0f4f9;
+            text-align: center;
+            padding: 15px 20px;
+            background: #fafcfd;
+        }
+
+        .btn {
+            border-radius: 6px;
+            padding: 8px 24px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-default {
+            border: 1px solid #dee2e6;
+            background: #fff;
+        }
+
+        .btn-default:hover {
+            background: #f8f9fa;
+            border-color: #ced4da;
+        }
+
+        .btn-danger {
+            background: #ff5252;
+            border: none;
+        }
+
+        .btn-danger:hover {
+            background: #ff3b30;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-default {
+                margin: 5px;
+                border-radius: 8px;
+            }
+
+            .navbar-nav > li > a {
+                padding: 10px 15px;
+            }
+
+            .navbar-right .dropdown > a {
+                padding: 10px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 导航栏 -->
+<div class="navbar navbar-default navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
+                    data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a id="homepage" class="navbar-brand" href="/">
+                基于多源小说站点爬虫的阅读平台
+            </a>
+        </div>
+
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <ul class="nav navbar-nav">
+                <li id="nav-home"><a href="/">主页</a></li>
+                {% menu request %}
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+                       aria-expanded="false">
+                        <span class="glyphicon glyphicon-user"></span>
+                        {{ request.common_username }}
+                        <span class="caret"></span>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li role="separator" class="divider"></li>
+                        <li><a id="logout" onclick="logout()">注销</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- 注销确认弹窗 -->
+<div class="modal fade" tabindex="-1" role="dialog" id="lgt">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">提示</h4>
+            </div>
+            <div class="modal-body">
+                <p>确定要退出登录吗？</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="confirmOut()">确认注销</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block content %}
+{% endblock %}
+
+<script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+<script src="{% static 'plugins/bootstrapv3/js/bootstrap.js' %}"></script>
+<script>
+    // 页面加载时，自动激活首页导航
+    $(function () {
+        let path = window.location.pathname;
+        if (path === '/') {
+            $('#nav-home').addClass('active');
+        }
+    });
+
+    // 注销弹窗显示
+    function logout() {
+        $('#lgt').modal('show');
+    }
+
+    // 确认注销
+    function confirmOut() {
+        $.ajax({
+            url: '/logout/',
+            type: 'GET',
+            dataType: 'JSON',
+            success: function (result) {
+                if (result.status) {
+                    location.href = '/login/';
+                    console.log('注销成功！');
+                }
+            }
+        });
+    }
+</script>
+{% block js %}
+{% endblock %}
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+    "NOVEL_SEMAPHORE": 5,
+    "CHAPTER_SEMAPHORE": 10,
+    "RETRY_SEMAPHORE": 5,
+    "NOVEL_NUM": 1050,
+    "BASE_URL": "http://wap.ujxsw.org/read/",
+    "TIMEOUT": 15
+}

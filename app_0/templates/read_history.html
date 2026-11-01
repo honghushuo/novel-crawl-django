@@ -1,0 +1,384 @@
+{% extends 'base.html' %}
+
+{% block css %}
+    <style>
+        .history-container {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 15px;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .history-title {
+            font-size: 26px;
+            font-weight: 600;
+            color: #222;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #2196f3;
+            display: inline-block;
+        }
+
+        .batch-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* 华丽版批量操作按钮样式 */
+        .batch-btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 批量删除主按钮 - 红橙渐变 */
+        .batch-delete-btn {
+            background: linear-gradient(135deg, skyblue, #e43939);
+            color: #fff;
+        }
+
+        .batch-delete-btn:hover {
+            background: linear-gradient(135deg, #e45656, burlywood);
+            box-shadow: 0 4px 12px rgba(228, 57, 57, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .batch-delete-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(228, 57, 57, 0.2);
+        }
+
+        /* 取消按钮 - 灰色系 */
+        .cancel-btn {
+            background: linear-gradient(135deg, #f5f7fa, #e4e6eb);
+            color: #666;
+        }
+
+        .cancel-btn:hover {
+            background: linear-gradient(135deg, #e4e6eb, #d3d6db);
+            box-shadow: 0 4px 12px rgba(102, 102, 102, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .cancel-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(102, 102, 102, 0.1);
+        }
+
+        /* 全选标签样式 */
+        .select-all-label {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: #666;
+            cursor: pointer;
+        }
+
+        .select-all-label input {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .check-wrapper {
+            display: none;
+        }
+
+        .batch-mode .check-wrapper {
+            display: block;
+        }
+
+        .history-check {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #f56c6c;
+        }
+
+        .history-card {
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 16px;
+            padding: 20px 25px;
+            margin-bottom: 16px;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: 0.2s;
+        }
+
+        .history-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.09);
+        }
+
+        .history-cover {
+            width: 70px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .history-info {
+            flex: 1;
+        }
+
+        .history-book-name {
+            font-size: 18px;
+            font-weight: 500;
+            color: #222;
+            margin-bottom: 6px;
+        }
+
+        .history-meta {
+            font-size: 14px;
+            color: #666;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+
+        .history-progress {
+            color: #2196f3;
+            font-weight: 500;
+        }
+
+        .history-time {
+            font-size: 13px;
+            color: #999;
+        }
+
+        .history-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 110px;
+        }
+
+        .continue-btn {
+            padding: 9px 20px;
+            background: #2196f3;
+            color: #fff;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: 0.2s;
+            text-align: center;
+        }
+
+        .continue-btn:hover {
+            background: #1976d2;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .delete-btn {
+            padding: 9px 20px;
+            background: linear-gradient(135deg, greenyellow, #e43939);
+            color: #fff;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: 0.2s;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+        }
+
+        .delete-btn:hover {
+            background: #e45656;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .empty-history {
+            text-align: center;
+            padding: 80px 20px;
+            color: #999;
+            font-size: 16px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="history-container">
+        <div class="history-header">
+            <h2 class="history-title">📖 我的阅读历史</h2>
+
+            {% if history %}
+                <div class="batch-bar">
+                    <label id="selectAllLabel" class="select-all-label">
+                        <input type="checkbox" id="selectAll" onclick="toggleAll(this)"> 全选
+                    </label>
+                    <button class="batch-btn batch-delete-btn" id="batchBtn" onclick="enterBatchMode()">
+                        <span>🗑️</span> 批量删除
+                    </button>
+                    <button class="batch-btn cancel-btn" id="cancelBtn" style="display:none;" onclick="exitBatchMode()">
+                        <span>❌</span> 取消
+                    </button>
+                    <button class="batch-btn batch-delete-btn" id="deleteSelectedBtn" style="display:none;"
+                            onclick="deleteSelected()">
+                        <span>✅</span> 删除选中
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if history %}
+            {% for item in history %}
+                <div class="history-card" data-id="{{ item.id }}">
+                    <!-- 复选框 -->
+                    <div class="check-wrapper">
+                        <input type="checkbox" class="history-check" value="{{ item.id }}">
+                    </div>
+
+                    <img src="{{ item.book.cover|default:'https://picsum.photos/70/90' }}" class="history-cover">
+
+                    <div class="history-info">
+                        <div class="history-book-name">{{ item.book.book_name }}</div>
+                        <div class="history-meta">
+                            <span>作者：{{ item.book.author|default:'佚名' }}</span>
+                            <span>来源：{{ item.book.source.name}}</span>
+                            <span>最新章节：{{ item.book.last_chapter_name }}</span>
+                            <span>上次阅读章节：{{ item.title }}</span>
+                            <span class="history-progress">阅读进度：{% widthratio item.progress 1 100 %}%</span>
+                            <span>阅读时长：{{ item.read_duration|default:0 }} 秒</span>
+                        </div>
+                        <div class="history-time">最后阅读：{{ item.read_time|date:"Y-m-d H:i" }}</div>
+                    </div>
+
+                    <div class="history-buttons">
+                        <a class="continue-btn"
+                            href="/chapter/{{item.book.book_id}}/{{item.chapter_id}}/?source_id={{ item.book.source_id }}">继续阅读</a>
+                        <a class="delete-btn" onclick="deleteHistory({{ item.id }})">删除</a>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-history" style="font-family: 华文行楷,serif; color: greenyellow; font-size: 2em">
+                你还没有阅读记录哦～<br>快去挑选一本小说开始阅读吧！
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // 每次进入页面都自动刷新一次
+        window.onload = function () {
+            if (!window.location.hash) {
+                window.location = window.location + '#refreshed';
+                window.location.reload();
+            }
+        }
+
+        // 进入批量选择模式
+        function enterBatchMode() {
+            document.querySelectorAll('.history-container').forEach(el => el.classList.add('batch-mode'));
+            document.querySelectorAll('.check-wrapper').forEach(el => el.style.display = 'block');
+            document.getElementById('batchBtn').style.display = 'none';
+            document.getElementById('cancelBtn').style.display = 'inline-flex';
+            document.getElementById('deleteSelectedBtn').style.display = 'inline-flex';
+            document.getElementById('selectAllLabel').style.display = 'inline-flex';
+        }
+
+        // 退出批量模式
+        function exitBatchMode() {
+            document.querySelectorAll('.history-container').forEach(el => el.classList.remove('batch-mode'));
+            document.querySelectorAll('.check-wrapper').forEach(el => el.style.display = 'none');
+            document.getElementById('batchBtn').style.display = 'inline-flex';
+            document.getElementById('cancelBtn').style.display = 'none';
+            document.getElementById('deleteSelectedBtn').style.display = 'none';
+            document.getElementById('selectAllLabel').style.display = 'none';
+            document.getElementById('selectAll').checked = false;
+            document.querySelectorAll('.history-check').forEach(cb => cb.checked = false);
+        }
+
+        // 全选/取消全选
+        function toggleAll(selectAll) {
+            document.querySelectorAll('.history-check').forEach(cb => {
+                cb.checked = selectAll.checked;
+            });
+        }
+
+        // 单条删除
+        function deleteHistory(historyId) {
+            if (confirm('确定要删除这条阅读记录吗？')) {
+                $.ajax({
+                    url: `/delete/history/?history_id=${historyId}`,
+                    type: "GET",
+                    success: function (res) {
+                        if (res.ok) {
+                            location.reload();
+                        } else {
+                            alert("删除失败：" + (res.errors || "未知错误"));
+                        }
+                    },
+                    error: function () {
+                        alert("请求失败，请稍后重试！");
+                    }
+                });
+            }
+        }
+
+        // 批量删除选中
+        function deleteSelected() {
+            let selected = [];
+            document.querySelectorAll('.history-check:checked').forEach(cb => {
+                selected.push(cb.value);
+            });
+            if (selected.length === 0) {
+                alert('请先选择要删除的记录！');
+                return;
+            }
+            if (!confirm(`确定删除选中的 ${selected.length} 条记录吗？`)) return;
+
+            $.ajax({
+                url: "/batch/delete/history/",
+                type: "POST",
+                data: {
+                    'ids': selected.join(','),
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function (res) {
+                    if (res.ok) {
+                        alert(`成功删除！已存在于书架中书籍不允许删除`);
+                        location.reload();
+                    } else {
+                        alert("删除失败：" + (res.errors || "未知错误"));
+                    }
+                },
+                error: function () {
+                    alert("请求失败，请稍后重试！");
+                }
+            });
+        }
+
+        function goReading(source_id, book_id, chapterId) {
+            let url = `/chapter/${book_id}/${chapterId}/`;
+            $.get(url, {
+                source_id: source_id
+            }, function (res) {
+                console.log("请求成功！", res);
+                // 你可以在这里处理返回的内容
+            }).fail(function () {
+                console.log("请求失败");
+            });
+        }
+    </script>
+{% endblock %}

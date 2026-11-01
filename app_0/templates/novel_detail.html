@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+
+{% block css %}
+    <style>
+        .novel-detail-container {
+            max-width: 1250px;
+            margin: 30px auto;
+            padding: 0 15px;
+        }
+
+        .novel-info-card {
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 18px;
+            padding: 35px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            display: flex;
+            gap: 35px;
+            flex-wrap: wrap;
+            margin-bottom: 35px;
+        }
+
+        .detail-cover {
+            width: 230px;
+            height: 320px;
+            object-fit: cover;
+            border-radius: 14px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .detail-content {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .detail-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1d2129;
+            margin: 0 0 18px;
+        }
+
+        .detail-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 22px;
+            font-size: 15px;
+            color: #666;
+        }
+
+        .detail-meta span {
+            padding: 6px 12px;
+            background: #f7f9fc;
+            border-radius: 10px;
+        }
+
+        .detail-category {
+            color: #2196f3 !important;
+            background: #e6f4ff !important;
+        }
+
+        .detail-desc {
+            line-height: 1.9;
+            font-size: 16px;
+            color: #444;
+            background: #fafbfc;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 5px solid #2196f3;
+            margin-top: 15px;
+        }
+
+        .read-btn {
+            display: inline-block;
+            margin-top: 24px;
+            padding: 14px 36px;
+            background: linear-gradient(120deg, #4fc3f7, #2196f3);
+            color: #fff;
+            border-radius: 12px;
+            font-size: 17px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .read-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 22px rgba(33, 150, 243, 0.35);
+            color: #fff;
+        }
+
+        .chapter-list-container {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 18px;
+            padding: 35px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.07);
+            margin-top: 20px;
+        }
+
+        .chapter-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #222;
+            margin-bottom: 28px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #2196f3;
+            display: inline-block;
+        }
+
+        .chapter-list {
+            display: grid;
+            grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));
+            gap: 14px;
+            max-height: 580px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .chapter-item {
+            padding: 16px;
+            background: #f5e79e;
+            border-radius: 12px;
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+
+        .chapter-item a {
+            color: #333;
+            text-decoration: none;
+            font-size: 15px;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chapter-item:hover {
+            background: linear-gradient(120deg, #4fc3f7, #2196f3);
+            transform: translateY(-3px);
+        }
+
+        .chapter-item:hover a {
+            color: #fff !important;
+            font-weight: 600;
+        }
+
+        .empty-chapter {
+            grid-column: 1/-1;
+            text-align: center;
+            padding: 60px 0;
+            color: #999;
+        }
+
+        .chapter-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chapter-list::-webkit-scrollbar-thumb {
+            background: #2196f3;
+            border-radius: 10px;
+        }
+
+        .chapter-list::-webkit-scrollbar-track {
+            background: #f0f5ff;
+            border-radius: 10px;
+        }
+
+        /* 收藏按钮基础样式 */
+        .collection-btn {
+            display: inline-block;
+            padding: 8px 16px;
+            font-size: 14px;
+            color: #666;
+            background-color: wheat;
+            border: 1px solid pink;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.25s ease;
+            text-decoration: none;
+        }
+
+        /* 鼠标悬浮效果 */
+        .collection-btn:hover {
+            color: #ff4d4f;
+            background-color: #fff2f2;
+            border-color: #ffd1d1;
+        }
+
+        /* 点击按下动效 */
+        .collection-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 已收藏状态 */
+        .collection-btn.active {
+            color: #fff;
+            background-color: #ff4d4f;
+            border: 1px solid #ff4d4f;
+        }
+
+        /* 收藏前空心爱心 */
+        .collection-btn::before {
+            content: "♡";
+            margin-right: 4px;
+            font-size: 16px;
+            vertical-align: middle;
+        }
+
+        /* 已收藏实心爱心 */
+        .collection-btn.active::before {
+            content: "♥";
+        }
+
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="novel-detail-container">
+        <div class="novel-info-card">
+            <img src="{{ novel.cover|default:'https://picsum.photos/220/310' }}" class="detail-cover">
+            <div class="detail-content">
+                <h1 class="detail-title">{{ novel.book_name }}</h1>
+                <div class="detail-meta">
+                    <span>作者：{{ novel.author|default:'佚名' }}</span>
+                    <span class="detail-category">{{ novel.category|default:'未知分类' }}</span>
+                    <span>状态：{{ novel.get_status_display|default:'连载中' }}</span>
+                    <span>字数：{{ novel.words|default:'未知' }}</span>
+                </div>
+                <div class="detail-desc">{{ novel.introduction|default:'暂无简介' }}</div>
+
+                {% if chapters %}
+                    <a class="read-btn"
+                       onclick="at_read('{{ novel.book_id }}', '{{ novel.source_id }}')">立即阅读</a>
+                {% endif %}
+                <a id="userCollection" class="collection-btn" style="margin-left: 100px"
+                   onclick="toggleCollect({{ novel.book_id }}, {{ novel.source_id }})">收藏</a>
+            </div>
+        </div>
+
+        <div class="chapter-list-container">
+            <h3 class="chapter-title">章节列表</h3>
+            <div class="chapter-list">
+                {% if chapters %}
+                    {% for chapter in chapters %}
+                        <div class="chapter-item">
+                            <a href="/chapter/{{ novel.book_id }}/{{ chapter.chapter_id }}/?source_id={{ novel.source_id }}">{{ chapter.title }}</a>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-chapter">暂无章节</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}
+    <script>
+        // 页面加载时：初始化收藏状态（正确、干净版）
+        (function () {
+            let $btn = $('#userCollection');
+            let isCollect = {{ is_collect|yesno:"true,false" }};
+
+            if (isCollect) {
+                $btn.addClass("active");  // 已收藏 → 加样式
+                $btn.text("已收藏");      // 改文字
+            } else {
+                $btn.removeClass("active"); // 未收藏 → 清样式
+                $btn.text("收藏");          // 改文字
+            }
+        })();
+
+        // ✅ 收藏/取消收藏（修复版：先请求，成功再改UI）
+        function toggleCollect(book_id, source_id) {
+            let $btn = $('#userCollection');
+            let isActive = $btn.hasClass("active");
+
+            // 正在收藏 → 发送取消收藏请求
+            if (isActive) {
+                $.ajax({
+                    url: `/cancel/collection/?book_id=${book_id}&source_id=${source_id}`,
+                    type: 'GET',
+                    success: function (res) {
+                        if (res.ok) {
+                            // 成功才改状态
+                            $btn.removeClass("active");
+                            $btn.text("收藏");
+
+                        } else {
+                            alert('取消收藏失败');
+                        }
+                    },
+                    error: function () {
+                        alert('网络错误，取消收藏失败');
+                    }
+                });
+            }
+            // 未收藏 → 发送收藏请求
+            else {
+                $.ajax({
+                    url: `/confirm/collection/?book_id=${book_id}&source_id=${source_id}`,
+                    type: 'GET',
+                    success: function (res) {
+                        if (res.ok) {
+                            // 成功才改状态
+                            $btn.addClass("active");
+                            $btn.text("已收藏");
+
+                        } else {
+                            alert('收藏失败');
+                        }
+                    },
+                    error: function () {
+                        alert('网络错误，收藏失败');
+                    }
+                });
+            }
+        }
+
+        // 继续阅读
+        function at_read(book_id, source_id) {
+            $.ajax({
+                url: `/read/at/?book_id=${book_id}&source_id=${source_id}`,
+                type: "GET",
+                success: function (res) {
+                    window.location.href = "/chapter/" + book_id + "/" + res.chapter_id + "/" +"?source_id=" + source_id;
+                }
+            })
+        }
+    </script>
+{% endblock %}
